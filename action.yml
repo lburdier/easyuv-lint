@@ -1,0 +1,81 @@
+name: EasyUV Lint
+description: Lint 3D assets (OBJ, glTF, GLB, FBX) in CI. UV overlaps, flipped faces, texel density, polycount and scale.
+author: Lucas Burdier
+branding:
+  icon: box
+  color: gray-dark
+
+inputs:
+  paths:
+    description: Files or folders to check, separated by spaces or new lines.
+    default: "."
+  preset:
+    description: "Rule preset: game, mobile, web or film. Ignored when a config file sets one."
+    default: ""
+  config:
+    description: Path to an easyuv-lint.toml file. Defaults to easyuv-lint.toml at the repository root, if present.
+    default: ""
+  texture-size:
+    description: Texture size in pixels used for texel density.
+    default: ""
+  strict:
+    description: Fail on warnings too.
+    default: "false"
+  lang:
+    description: "Language of messages and reports: en or fr."
+    default: "en"
+  report:
+    description: Path of the HTML report to write. Empty to skip it.
+    default: "easyuv-lint-report.html"
+  upload-report:
+    description: Upload the HTML report as a workflow artifact.
+    default: "true"
+  version:
+    description: "Release to use (for example v0.1.0), latest, or source to build from this action's code."
+    default: "latest"
+
+outputs:
+  errors:
+    description: Number of errors.
+    value: ${{ steps.lint.outputs.errors }}
+  warnings:
+    description: Number of warnings.
+    value: ${{ steps.lint.outputs.warnings }}
+  passed:
+    description: true when no rule failed.
+    value: ${{ steps.lint.outputs.passed }}
+
+runs:
+  using: composite
+  steps:
+    - name: Install easyuv-lint
+      shell: bash
+      run: bash "$GITHUB_ACTION_PATH/scripts/install.sh"
+      env:
+        EUL_VERSION: ${{ inputs.version }}
+
+    - name: Lint 3D assets
+      id: lint
+      shell: bash
+      run: bash "$GITHUB_ACTION_PATH/scripts/run.sh"
+      env:
+        EUL_PATHS: ${{ inputs.paths }}
+        EUL_PRESET: ${{ inputs.preset }}
+        EUL_CONFIG: ${{ inputs.config }}
+        EUL_TEXTURE: ${{ inputs.texture-size }}
+        EUL_STRICT: ${{ inputs.strict }}
+        EUL_LANG: ${{ inputs.lang }}
+        EUL_REPORT: ${{ inputs.report }}
+
+    - name: Upload HTML report
+      if: always() && inputs.upload-report == 'true' && inputs.report != ''
+      uses: actions/upload-artifact@v4
+      with:
+        name: easyuv-lint-report
+        path: ${{ inputs.report }}
+        if-no-files-found: ignore
+
+    - name: Result
+      if: always()
+      shell: bash
+      run: exit "${{ steps.lint.outputs.exit-code || 2 }}"

@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo test --release --locked
+
+  action:
+    name: Action self-test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Clean assets pass
+        uses: ./
+        with:
+          version: source
+          paths: examples/assets/suzanne_clean.glb
+          report: clean-report.html
+          upload-report: "false"
+      - name: Broken assets fail
+        id: broken
+        continue-on-error: true
+        uses: ./
+        with:
+          version: source
+          paths: examples/assets
+      - name: Check that the broken assets failed
+        run: |
+          test "${{ steps.broken.outcome }}" = "failure"
+          test "${{ steps.broken.outputs.errors }}" -ge 1

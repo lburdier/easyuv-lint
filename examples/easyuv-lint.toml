@@ -1,0 +1,13 @@
+# easyuv-lint configuration. Put this file at the root of your repository.
+# Every rule: easyuv-lint --list-rules
+
+preset = "game"          # game, mobile, web or film
+texture_size = 2048      # used for texel density (px/m)
+ignore = ["ThirdParty/", "_backup"]
+
+[rules]
+"uv.overlap" = { level = "error", max = 0.5 }    # % of the UV area covered twice
+"uv.outside" = "off"                             # turn off for UDIM workflows
+"uv.density" = { min = 512, max = 1024 }         # px/m, turns the rule on as a warning
+"mesh.tris" = { max = 25000 }
+"name.pattern" = { pattern = "^(SM|SK)_[A-Za-z0-9_]+$" }
