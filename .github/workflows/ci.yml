@@ -42,3 +42,17 @@ jobs:
         run: |
           test "${{ steps.broken.outcome }}" = "failure"
           test "${{ steps.broken.outputs.errors }}" -ge 1
+
+  release-binary:
+    name: Action with the release binary
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./
+        with:
+          paths: examples/assets/suzanne_clean.glb examples/assets/props_clean.obj
+          lang: fr
+          upload-report: "false"
