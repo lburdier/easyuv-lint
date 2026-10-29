@@ -57,7 +57,7 @@ pub struct ObjectReport {
     pub dims_m: [f64; 3],
     pub uv: Option<UvStats>,
     pub findings: Vec<Finding>,
-    #[serde(skip)]
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub svg: Option<String>,
 }
 

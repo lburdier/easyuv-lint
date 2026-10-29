@@ -1,3 +1,5 @@
 /target
 *.html.tmp
 /report.html
+
+/desktop/src-tauri/gen

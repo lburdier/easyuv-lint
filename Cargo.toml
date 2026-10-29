@@ -1,6 +1,6 @@
 [package]
 name = "easyuv-lint"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2021"
 license = "GPL-3.0-or-later"
 description = "Lint 3D assets in CI: UV overlaps, flipped faces, texel density, polycount, scale. Powered by the EasyUV engine."
@@ -8,6 +8,10 @@ repository = "https://github.com/lburdier/easyuv-lint"
 readme = "README.md"
 keywords = ["3d", "uv", "lint", "gamedev", "gltf"]
 categories = ["command-line-utilities", "game-development", "graphics"]
+
+[lib]
+name = "easyuv_lint"
+path = "src/lib.rs"
 
 [[bin]]
 name = "easyuv-lint"
@@ -27,3 +31,7 @@ opt-level = 3
 lto = "thin"
 codegen-units = 1
 strip = true
+
+[workspace]
+members = [".", "desktop/src-tauri"]
+default-members = ["."]

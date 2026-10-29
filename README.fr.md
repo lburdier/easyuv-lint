@@ -8,10 +8,23 @@ Il est gratuit, open source et propulsé par le moteur [EasyUV](https://github.c
 
 ![Rapport HTML avec l'aperçu des UV](docs/report-preview.png)
 
+- **Application de bureau pour Windows** : dépose un dossier, vois chaque problème et les UV de chaque objet. Télécharge `EasyUV-Lint-Setup-x64.exe` sur la page des [releases](https://github.com/lburdier/easyuv-lint/releases/latest).
 - **GitHub Action** : annotations sur les fichiers fautifs, résumé dans la page du job, et rapport HTML avec l'aperçu des UV.
 - **Ligne de commande** pour Windows, Linux et macOS : un seul exécutable, sans dépendance.
 - **Préréglages** jeu, mobile, web et film, et un petit `easyuv-lint.toml` pour régler chaque règle.
 - Messages et rapports **en anglais et en français**.
+
+## Application de bureau
+
+![EasyUV Lint Desktop](docs/desktop.png)
+
+1. Télécharge **`EasyUV-Lint-Setup-x64.exe`** depuis la [dernière release](https://github.com/lburdier/easyuv-lint/releases/latest) et lance-le. Il s'installe dans ton profil, sans droits d'administrateur.
+2. L'installeur n'est pas encore signé : si Windows SmartScreen affiche « Windows a protégé votre ordinateur », clique sur **Informations complémentaires**, puis **Exécuter quand même**.
+3. Dépose un dossier ou des fichiers 3D sur la fenêtre, ou clique sur **Nouvelle analyse**.
+
+L'application propose un tableau de bord, le détail de chaque fichier avec l'aperçu des UV, un éditeur de règles (préréglages, niveaux, seuils, export en `easyuv-lint.toml`), l'historique de tes analyses et l'export du rapport HTML. En français et en anglais, thèmes sombre et clair.
+
+> L'archive `easyuv-lint-x86_64-pc-windows-msvc.zip` contient l'**outil en ligne de commande**, pas l'application : lance-le depuis un terminal.
 
 ## L'ajouter à ton workflow
 

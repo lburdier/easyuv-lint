@@ -1,3 +1,9 @@
+## easyuv-lint 0.2.0
+
+- **EasyUV Lint Desktop**: a Windows app with an installer (`EasyUV-Lint-Setup-x64.exe`). Drop a folder or files, see a dashboard, every problem and the UV layout of each object, edit the rules, export the HTML report or an `easyuv-lint.toml`, and find your past scans. English and French, dark and light themes.
+- The command-line tool now explains itself when it is opened with a double-click instead of closing at once.
+- easyuv-lint is also a Rust library (`easyuv_lint`), used by the desktop app.
+
 ## easyuv-lint 0.1.0
 
 First release.

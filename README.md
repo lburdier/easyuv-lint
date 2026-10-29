@@ -8,10 +8,23 @@ It is free, open source and powered by the [EasyUV](https://github.com/lburdier/
 
 ![HTML report with UV previews](docs/report-preview.png)
 
+- **Desktop app for Windows**: drop a folder, see every problem and the UV layout of each object. Download `EasyUV-Lint-Setup-x64.exe` from the [releases](https://github.com/lburdier/easyuv-lint/releases/latest).
 - **GitHub Action**: annotations on the faulty files, a summary in the job page, and an HTML report with UV previews.
 - **CLI** for Windows, Linux and macOS: one binary, no dependencies.
 - **Presets** for game, mobile, web and film, and a small `easyuv-lint.toml` to tune every rule.
 - **English and French** messages and reports.
+
+## Desktop app
+
+![EasyUV Lint Desktop](docs/desktop.png)
+
+1. Download **`EasyUV-Lint-Setup-x64.exe`** from the [latest release](https://github.com/lburdier/easyuv-lint/releases/latest) and run it. It installs in your user profile, no admin rights needed.
+2. The installer is not signed yet: if Windows SmartScreen shows "Windows protected your PC", click **More info**, then **Run anyway**.
+3. Drop a folder or 3D files on the window, or click **New scan**.
+
+The app has a dashboard, the detail of every file with its UV preview, a rules editor (presets, levels, thresholds, export to `easyuv-lint.toml`), the history of your scans, and the HTML report export. English and French, dark and light themes.
+
+> The `easyuv-lint-x86_64-pc-windows-msvc.zip` archive contains the **command-line tool**, not the app: run it from a terminal.
 
 ## Add it to your workflow
 

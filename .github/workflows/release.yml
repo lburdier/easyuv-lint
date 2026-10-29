@@ -15,7 +15,9 @@ jobs:
       - name: Create the release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" --title "easyuv-lint $GITHUB_REF_NAME" --notes-file CHANGELOG.md --verify-tag || true
+        run: |
+          awk '/^## /{n++} n==1' CHANGELOG.md > notes.md
+          gh release create "$GITHUB_REF_NAME" --title "easyuv-lint $GITHUB_REF_NAME" --notes-file notes.md --verify-tag || true
 
   build:
     needs: create
@@ -51,3 +53,26 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release upload "$GITHUB_REF_NAME" easyuv-lint-${{ matrix.target }}.* --clobber
+
+  desktop:
+    name: Desktop installer (Windows)
+    needs: create
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Install the Tauri CLI
+        run: cargo install tauri-cli --version "^2" --locked
+      - name: Build the installer
+        working-directory: desktop/src-tauri
+        run: cargo tauri build
+      - name: Upload
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          setup=$(ls target/release/bundle/nsis/*-setup.exe | head -1)
+          cp "$setup" EasyUV-Lint-Setup-x64.exe
+          sha256sum EasyUV-Lint-Setup-x64.exe > EasyUV-Lint-Setup-x64.exe.sha256
+          gh release upload "$GITHUB_REF_NAME" EasyUV-Lint-Setup-x64.exe EasyUV-Lint-Setup-x64.exe.sha256 --clobber

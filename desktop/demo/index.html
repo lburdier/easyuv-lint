@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="fr" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EasyUV Lint</title>
+<link rel="stylesheet" href="../ui/app.css">
+</head>
+<body>
+<div id="titlebar" data-tauri-drag-region>
+  <img class="logo" src="../ui/logo.png" alt="" data-tauri-drag-region>
+  <span class="name" data-tauri-drag-region>EasyUV Lint</span>
+  <div class="center" data-tauri-drag-region><div class="status" id="status"></div></div>
+  <div class="winctl">
+    <button data-win="min" aria-label="Minimize"><svg class="i" viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button>
+    <button data-win="max" aria-label="Maximize"><svg class="i" viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="1.5"/></svg></button>
+    <button data-win="close" class="close" aria-label="Close"><svg class="i" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+  </div>
+</div>
+<div class="shell">
+  <aside id="nav"></aside>
+  <main id="view"></main>
+</div>
+<div id="overlay"><div><b data-t="drop_now"></b><span class="mono" data-t="drop_formats"></span></div></div>
+<div id="toasts"></div>
+<script src="demo-data.js"></script><script src="demo.js"></script><script src="../ui/app.js"></script>
+</body>
+</html>

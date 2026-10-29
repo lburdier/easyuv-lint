@@ -3,7 +3,7 @@
 use std::collections::BTreeMap;
 use std::path::Path;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, serde::Serialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, serde::Serialize, serde::Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Level {
     Off,
@@ -139,6 +139,99 @@ impl Config {
     pub fn rule(&self, id: &str) -> &Rule {
         &self.rules[id]
     }
+
+    /// Plain, serialisable form (used by the desktop app).
+    pub fn to_settings(&self) -> Settings {
+        Settings {
+            preset: self.preset.clone(),
+            texture_size: self.texture_size,
+            ignore: self.ignore.clone(),
+            rules: RULES
+                .iter()
+                .map(|(id, ..)| {
+                    let r = &self.rules[id];
+                    RuleSetting { id: id.to_string(), level: r.level, min: r.min, max: r.max, pattern: r.pattern.clone() }
+                })
+                .collect(),
+        }
+    }
+
+    pub fn from_settings(s: &Settings) -> Result<Config, String> {
+        let mut cfg = Config::preset(&s.preset)?;
+        cfg.texture_size = s.texture_size.max(1);
+        cfg.ignore = s.ignore.iter().filter(|i| !i.trim().is_empty()).cloned().collect();
+        for r in &s.rules {
+            let rule = cfg.rules.get_mut(r.id.as_str()).ok_or_else(|| format!("unknown rule '{}'", r.id))?;
+            if let Some(p) = &r.pattern {
+                if !p.is_empty() {
+                    regex::Regex::new(p).map_err(|e| format!("{}: {e}", r.id))?;
+                }
+            }
+            *rule = Rule { level: r.level, min: r.min, max: r.max, pattern: r.pattern.clone().filter(|p| !p.is_empty()) };
+        }
+        Ok(cfg)
+    }
+
+    /// The configuration as an easyuv-lint.toml, listing only what differs from the preset.
+    pub fn to_toml(&self) -> String {
+        let base = Config::preset(&self.preset).unwrap_or_else(|_| Config::preset("game").unwrap());
+        let mut out = format!(
+            "# easyuv-lint configuration: https://github.com/lburdier/easyuv-lint
+
+preset = \"{}\"
+texture_size = {}
+",
+            self.preset, self.texture_size
+        );
+        if !self.ignore.is_empty() {
+            let list: Vec<String> = self.ignore.iter().map(|i| format!("{i:?}")).collect();
+            out.push_str(&format!("ignore = [{}]
+", list.join(", ")));
+        }
+        let mut rules = String::new();
+        for (id, ..) in RULES {
+            let (r, b) = (&self.rules[id], &base.rules[id]);
+            if r.level == b.level && r.min == b.min && r.max == b.max && r.pattern == b.pattern {
+                continue;
+            }
+            let mut parts = vec![format!("level = \"{}\"", format!("{:?}", r.level).to_lowercase())];
+            if let Some(m) = r.min {
+                parts.push(format!("min = {m}"));
+            }
+            if let Some(m) = r.max {
+                parts.push(format!("max = {m}"));
+            }
+            if let Some(p) = &r.pattern {
+                parts.push(format!("pattern = {p:?}"));
+            }
+            rules.push_str(&format!("\"{id}\" = {{ {} }}
+", parts.join(", ")));
+        }
+        if !rules.is_empty() {
+            out.push_str("
+[rules]
+");
+            out.push_str(&rules);
+        }
+        out
+    }
+}
+
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+pub struct RuleSetting {
+    pub id: String,
+    pub level: Level,
+    pub min: Option<f64>,
+    pub max: Option<f64>,
+    pub pattern: Option<String>,
+}
+
+#[derive(Clone, Debug, serde::Serialize, serde::Deserialize)]
+pub struct Settings {
+    pub preset: String,
+    pub texture_size: u32,
+    pub ignore: Vec<String>,
+    pub rules: Vec<RuleSetting>,
 }
 
 fn apply(rule: &mut Rule, v: &toml::Value) -> Result<(), String> {
@@ -185,5 +278,20 @@ mod tests {
         assert_eq!(cfg.rule("mesh.tris").max, Some(8000.0));
         assert_eq!(cfg.rule("name.pattern").level, Level::Warning);
         assert!(Config::from_toml("[rules]\n\"nope\" = \"off\"\n").is_err());
+    }
+
+    #[test]
+    fn settings_and_toml_round_trip() {
+        let mut cfg = Config::preset("web").unwrap();
+        cfg.rules.get_mut("uv.overlap").unwrap().level = Level::Error;
+        let np = cfg.rules.get_mut("name.pattern").unwrap();
+        np.pattern = Some("^SM_".into());
+        np.level = Level::Warning;
+        let back = Config::from_settings(&cfg.to_settings()).unwrap();
+        assert_eq!(back.rule("uv.overlap").level, Level::Error);
+        let reread = Config::from_toml(&cfg.to_toml()).unwrap();
+        assert_eq!(reread.rule("uv.overlap").level, Level::Error);
+        assert_eq!(reread.rule("name.pattern").pattern.as_deref(), Some("^SM_"));
+        assert_eq!(reread.rule("mesh.tris").max, Some(50_000.0));
     }
 }

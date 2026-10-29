@@ -1,15 +1,8 @@
 //! easyuv-lint: checks 3D assets (UVs, polycount, scale, names) for CI and artists.
 
-mod checks;
-mod config;
-mod html;
-mod i18n;
-mod load;
-mod report;
-mod svg;
-
-use config::{Config, Level, RULES};
-use i18n::{rule_doc, Lang};
+use easyuv_lint::config::{Config, Level, RULES};
+use easyuv_lint::i18n::{rule_doc, Lang};
+use easyuv_lint::{checks, collect, html, report};
 use std::io::IsTerminal;
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
@@ -132,44 +125,6 @@ fn parse_args() -> Result<Action, String> {
     Ok(Action::Run(a))
 }
 
-/// Asset files under the given paths, sorted, skipping hidden and build folders.
-fn collect(paths: &[PathBuf], ignore: &[String]) -> Result<Vec<PathBuf>, String> {
-    fn walk(dir: &Path, out: &mut Vec<PathBuf>) {
-        let Ok(rd) = std::fs::read_dir(dir) else { return };
-        for e in rd.flatten() {
-            let p = e.path();
-            let name = e.file_name().to_string_lossy().to_string();
-            if p.is_dir() {
-                if !name.starts_with('.') && !["node_modules", "target", "Library", "Temp", "Intermediate", "Saved", "DerivedDataCache"].contains(&name.as_str()) {
-                    walk(&p, out);
-                }
-            } else if load::is_asset(&p) {
-                out.push(p);
-            }
-        }
-    }
-    let mut out = Vec::new();
-    for p in paths {
-        if p.is_dir() {
-            walk(p, &mut out);
-        } else if p.is_file() {
-            out.push(p.clone());
-        } else {
-            return Err(format!("not found: {}", p.display()));
-        }
-    }
-    let norm = |p: &Path| p.to_string_lossy().replace('\\', "/");
-    out.retain(|p| !ignore.iter().any(|i| norm(p).contains(i.as_str())));
-    out.sort();
-    out.dedup();
-    Ok(out)
-}
-
-fn display_path(p: &Path) -> String {
-    let s = p.to_string_lossy().replace('\\', "/");
-    s.strip_prefix("./").unwrap_or(&s).to_string()
-}
-
 fn run(a: Args) -> Result<ExitCode, String> {
     let mut cfg = match &a.config {
         Some(p) => Config::load(p)?,
@@ -187,23 +142,7 @@ fn run(a: Args) -> Result<ExitCode, String> {
     }
     let files = collect(&a.paths, &cfg.ignore)?;
     let with_svg = a.html.is_some();
-    let reports: Vec<checks::FileReport> = files
-        .iter()
-        .map(|p| match load::load(p) {
-            Ok(asset) => checks::FileReport {
-                path: display_path(p),
-                format: asset.format.to_string(),
-                objects: asset.objects.iter().map(|o| checks::analyze(o, &cfg, with_svg)).collect(),
-                error: None,
-            },
-            Err(e) => checks::FileReport {
-                path: display_path(p),
-                format: p.extension().map(|e| e.to_string_lossy().to_uppercase()).unwrap_or_default(),
-                objects: Vec::new(),
-                error: Some(checks::load_error(&e)),
-            },
-        })
-        .collect();
+    let reports: Vec<checks::FileReport> = files.iter().map(|p| easyuv_lint::check_file(p, &cfg, with_svg)).collect();
 
     let out = match a.format.as_str() {
         "json" => report::json(&reports, &cfg),
@@ -237,6 +176,29 @@ fn run(a: Args) -> Result<ExitCode, String> {
 fn main() -> ExitCode {
     #[cfg(windows)]
     enable_utf8_console();
+    #[cfg(windows)]
+    if std::env::args().len() == 1 && launched_from_explorer() {
+        // double-clicked: explain instead of flashing a console window
+        let lang = Lang::from_env();
+        print!("{}", if lang == Lang::Fr { HELP_FR } else { HELP_EN });
+        println!(
+            "
+{}",
+            if lang == Lang::Fr {
+                "easyuv-lint est un outil en ligne de commande. Pour une interface graphique, installe
+EasyUV Lint Desktop (EasyUV-Lint-Setup.exe) : https://github.com/lburdier/easyuv-lint/releases/latest
+
+Appuie sur Entrée pour fermer."
+            } else {
+                "easyuv-lint is a command-line tool. For a graphical interface, install
+EasyUV Lint Desktop (EasyUV-Lint-Setup.exe): https://github.com/lburdier/easyuv-lint/releases/latest
+
+Press Enter to close."
+            }
+        );
+        let _ = std::io::stdin().read_line(&mut String::new());
+        return ExitCode::SUCCESS;
+    }
     match parse_args() {
         Ok(Action::Help(lang)) => {
             print!("{}", if lang == Lang::Fr { HELP_FR } else { HELP_EN });
@@ -274,6 +236,17 @@ fn main() -> ExitCode {
             ExitCode::from(2)
         }
     }
+}
+
+/// True when the console was created for this process alone (started from Explorer).
+#[cfg(windows)]
+fn launched_from_explorer() -> bool {
+    extern "system" {
+        fn GetConsoleProcessList(list: *mut u32, count: u32) -> u32;
+    }
+    let mut ids = [0u32; 4];
+    // SAFETY: the buffer is valid for `ids.len()` entries.
+    unsafe { GetConsoleProcessList(ids.as_mut_ptr(), ids.len() as u32) == 1 }
 }
 
 #[cfg(windows)]
